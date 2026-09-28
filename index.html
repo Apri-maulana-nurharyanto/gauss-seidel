@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gauss-Seidel</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="web">
+      <div class="box">
+        <h2>Panduan kode program</h2>
+        <span id="copykanan">by : apri.maulana</span>
+        <p>
+          Jadi, halaman website ini dibuat untuk penjelasan, tutorial, dan
+          apapun itulah sejenisnya, jadi mohon maaf apabila terdapat
+          <b>*typo</b> maklum manusia biasa. langsung aja scroll ke bawah buat
+          selengkapnya.
+        </p>
+        <Span class="noted">ada tips dan bantuan dibawah, tinggal scroll aja kuy kalo bingung</Span>
+      </div>
+      <div class="box">
+        <h2>Source Code Gauss-seidel</h2>
+        <p>
+          Ini buat source code nya, tinggal pencet tombol <b>Salin</b> aja, abis
+          itu paste aja dah.
+        </p>
+        <pre><code>
+import re
+import numpy as np
+
+
+def parse_equation(eq_str):
+    eq_str = eq_str.replace(" ", "")
+    left, right = eq_str.split("=")
+    b_val = float(right)
+
+    pattern = r"([+-]?\d*\.?\d*)([a-zA-Z])"
+    matches = re.findall(pattern, left)
+
+    coeffs = {}
+    for coeff_str, var in matches:
+        if coeff_str == "" or coeff_str == "+":
+            coeff = 1.0
+        elif coeff_str == "-":
+            coeff = -1.0
+        else:
+            coeff = float(coeff_str)
+        coeffs[var] = coeff
+
+    return coeffs, b_val
+
+
+def gauss_seidel(A, b, x0, var_list, tol=1e-3, max_iter=100):
+    A = np.array(A, dtype=float)
+    b = np.array(b, dtype=float)
+    x = np.array(x0, dtype=float)
+    n = len(b)
+
+    print("\n" + "=" * 65)
+    # Header rapi tanpa teks formatting yang bocor
+    header_vars = " ".join([f"{var:<12}" for var in var_list])
+    header = f"{'Iter':<6} {header_vars} {'Error':<12}"
+    print(header)
+    print("=" * 65)
+
+    x_str = " ".join([f"{val:<12.6f}" for val in x])
+    print(f"{0:<6} {x_str} {'-':<12}")
+
+    for iteration in range(1, max_iter + 1):
+        x_new = np.copy(x)
+
+        for i in range(n):
+            s1 = sum(A[i][j] * x_new[j] for j in range(i))
+            s2 = sum(A[i][j] * x[j] for j in range(i + 1, n))
+            x_new[i] = (b[i] - s1 - s2) / A[i][i]
+
+        error = np.linalg.norm(x_new - x, ord=np.inf)
+        x_str = " ".join([f"{val:<12.6f}" for val in x_new])
+        print(f"{iteration:<6} {x_str} {error:<12.6f}")
+
+        if error < tol:
+            print("=" * 65)
+            print(f"Konvergen pada iterasi ke-{iteration}")
+            return x_new
+
+        x = x_new
+
+    print("=" * 65)
+    print("Mencapai batas iterasi maksimum.")
+    return x
+
+# --- INPUT PROGRAM ---
+n = int(input("Masukkan jumlah persamaan: "))
+
+print("\n--- Masukkan Persamaan ---")
+parsed_eqs = []
+all_vars = set()
+
+for i in range(n):
+    eq_str = input(f"Persamaan {i+1}: ")
+    coeffs, b_val = parse_equation(eq_str)
+    parsed_eqs.append((coeffs, b_val))
+    all_vars.update(coeffs.keys())
+
+var_list = sorted(list(all_vars))
+
+A = []
+b = []
+for coeffs, b_val in parsed_eqs:
+    baris = [coeffs.get(var, 0.0) for var in var_list]
+    A.append(baris)
+    b.append(b_val)
+
+print("\n--- Masukkan Nilai Tebakan Awal (x0) ---")
+x0 = list(
+    map(
+        float,
+        input(
+            f"Masukkan {n} nilai tebakan awal urut {var_list} (beri spasi tiap nilai tebakan): "
+        ).split(),
+    )
+)
+
+tol = float(input("\nMasukkan nilai toleransi error : "))
+
+solusi = gauss_seidel(A, b, x0, var_list, tol)
+
+print("\n--- HASIL AKHIR ---")
+for i, var in enumerate(var_list):
+    print(f"{var} = {solusi[i]:.6f}")
+        </code></pre>
+        <button onclick="copyCode()" id="btn">Salin</button>
+      </div>
+      <div class="box">
+        <h2>Penjelasan tiap bagian program</h2>
+        <p>
+          jadi ini penjelasan tiap bagian programnya, bisa di pahami aja,
+          mungkin bahasanya aga bikin bingung, cuman sebisa mungkin bakal dibuat
+          semudah mungkin buat dipahamin. oh iya ini jelas urut ya dari awal.
+        </p>
+        <span class="gap"></span>
+        <p>oke, pertama jelas ini library ya, tau ya kan fungsinya buat apa?</p>
+        <pre><code>
+import re
+import numpy as np
+        </code></pre>
+        <ul>
+          <li>
+            <span class="unic">re</span> : Modul Regular Expression untuk
+            memproses dan mengambil pola teks dari input persamaan string.
+          </li>
+          <li>
+            <span class="unic">numpy</span> : Library untuk mengolah data
+            matriks dan vektor numerik secara efisien.
+          </li>
+        </ul>
+        <span class="gap"></span>
+        <pre><code>
+def parse_equation(eq_str):
+    eq_str = eq_str.replace(" ", "")
+    left, right = eq_str.split("=")
+    b_val = float(right)
+
+    pattern = r"([+-]?\d*\.?\d*)([a-zA-Z])"
+    matches = re.findall(pattern, left)
+
+    coeffs = {}
+    for coeff_str, var in matches:
+        if coeff_str == "" or coeff_str == "+":
+            coeff = 1.0
+        elif coeff_str == "-":
+            coeff = -1.0
+        else:
+            coeff = float(coeff_str)
+        coeffs[var] = coeff
+
+    return coeffs, b_val
+        </code></pre>
+        <p>
+          lanjut, ada
+          <span class="unic">fungsi parse_equation(eq_str)</span>jadi apa guna
+          nya fungsi ini, fungsi ini punya peranan sebagai :
+        </p>
+        <ul>
+          <li>
+            Memisahkan string persamaan berdasarkan tanda sama dengan (=)
+            menjadi ruas kiri dan ruas kanan (b_val).
+          </li>
+          <li>
+            Menggunakan pola regex r"([+-]?\d*\.?\d*)([a-zA-Z])" untuk
+            mengekstrak angka koefisien beserta variabelnya.
+          </li>
+          <li>
+            Mengubah string koefisien menjadi tipe data float (mengatur nilai
+            default 1.0 atau -1.0 jika variabel tidak memiliki angka di
+            depannya).
+          </li>
+          <li>
+            Mengembalikan dictionary berisi pasangan variabel-koefisien dan
+            nilai ruas kanan.
+          </li>
+        </ul>
+        <div class="noted">
+          <p>
+            jadi intinya : bertugas memecah string persamaan matematika menjadi
+            matriks angka koefisien dan nilai konstanta agar bisa dihitung sama
+            program
+          </p>
+        </div>
+        <span class="gap"></span>
+        <p>
+          fungsi
+          <span class="unic"
+            >gauss_seidel(A, b, x0, var_list, tol, max_iter)</span
+          >
+          ini adalah fungsi utama dari program nya
+        </p>
+        <p>
+          berikut adalah penjelasan beberapa <i>syntax</i> yang ada di dalam
+          fungsi <span class="unic">gauss_seidel</span>
+        </p>
+        <span class="gap"></span>
+        <pre><code>
+A = np.array(A, dtype=float)
+b = np.array(b, dtype=float)
+x = np.array(x0, dtype=float)
+n = len(b)
+        </code></pre>
+        <p>
+          Inisialisasi: Mengonversi input A, b, dan x0 menjadi array NumPy ber
+          tipe data float.
+        </p>
+        <span class="gap"></span>
+        <p>sampe sini masih aman? lanjut aja tinggal dikit lagi kok</p>
+        <span class="gap"></span>
+        <pre><code>
+print("\n" + "=" * 65)
+# Header rapi tanpa teks formatting yang bocor
+header_vars = " ".join([f"{var:<12}" for var in var_list])
+header = f"{'Iter':<6} {header_vars} {'Error':<12}"
+print(header)
+print("=" * 65)
+
+x_str = " ".join([f"{val:<12.6f}" for val in x])
+print(f"{0:<6} {x_str} {'-':<12}")
+        </code></pre>
+        <p>
+          Bagian kode tersebut berfungsi untuk mencetak header tabel dan
+          menampilkan nilai tebakan awal (iterasi ke-0) di terminal agar
+          tampilan output tersusun rapi.
+        </p>
+        <span class="noted"
+          >yaa, jadi intinya ini ga ngaruh buat program nya, cuman buat hiasan
+          program nya aja biar keren dikit sama rapi lah.</span
+        >
+        <span class="gap"></span>
+        <pre><code>
+    for iteration in range(1, max_iter + 1):
+        x_new = np.copy(x)
+
+        for i in range(n):
+            s1 = sum(A[i][j] * x_new[j] for j in range(i))
+            s2 = sum(A[i][j] * x[j] for j in range(i + 1, n))
+            x_new[i] = (b[i] - s1 - s2) / A[i][i]
+
+        error = np.linalg.norm(x_new - x, ord=np.inf)
+        x_str = " ".join([f"{val:<12.6f}" for val in x_new])
+        print(f"{iteration:<6} {x_str} {error:<12.6f}")
+
+        if error < tol:
+            print("=" * 65)
+            print(f"Konvergen pada iterasi ke-{iteration}")
+            return x_new
+
+        x = x_new
+
+    print("=" * 65)
+    print("Mencapai batas iterasi maksimum.")
+    return x
+        </code></pre>
+        <p>
+          Bagian kode tersebut merupakan inti dari algoritma Gauss-Seidel yang
+          melakukan perulangan (iterasi) untuk menghitung nilai variabel baru,
+          mengecek toleransi error, dan menghentikan perhitungan saat hasilnya
+          sudah konvergen.
+        </p>
+        <span class="gap"></span>
+        <pre><code>
+n = int(input("Masukkan jumlah persamaan: "))
+
+print("\n--- Masukkan Persamaan ---")
+parsed_eqs = []
+all_vars = set()
+      </code></pre>
+        <p>
+          Bagian kode tersebut berfungsi untuk meminta jumlah persamaan dari
+          user serta menyiapkan tempat penyimpanan kosong (list dan set) untuk
+          menampung hasil pemrosesan variabel dan persamaannya.
+        </p>
+        <span class="gap"></span>
+        <pre><code>
+for i in range(n):
+    eq_str = input(f"Persamaan {i+1}: ")
+    coeffs, b_val = parse_equation(eq_str)
+    parsed_eqs.append((coeffs, b_val))
+    all_vars.update(coeffs.keys())
+
+var_list = sorted(list(all_vars))
+
+A = []
+b = []
+for coeffs, b_val in parsed_eqs:
+    baris = [coeffs.get(var, 0.0) for var in var_list]
+    A.append(baris)
+    b.append(b_val)
+        </code></pre>
+        <p>Bagian kode tersebut berfungsi untuk membaca input persamaan dari user, mengekstrak variabelnya secara urut, dan menyusunnya menjadi bentuk matriks.</p>
+        <span class="gap"></span>
+        <pre><code>
+print("\n--- Masukkan Nilai Tebakan Awal (x0) ---")
+x0 = list(
+    map(
+        float,
+        input(
+            f"Masukkan {n} nilai tebakan awal urut {var_list} (beri spasi tiap nilai tebakan): "
+        ).split(),
+    )
+)
+        </code></pre>
+        <p>Bagian kode tersebut berfungsi untuk mengambil input nilai tebakan awal dari user yang dipisahkan spasi, lalu mengubahnya menjadi daftar angka bertipe desimal (float).</p>
+        <span class="noted">jadi cuman buat ngihput nilai tebakan aja udah gitu doang</span>
+        <span class="gap"></span>
+        <pre><code>
+tol = float(input("\nMasukkan nilai toleransi error : "))
+        </code></pre>
+        <p>buat nginput nilai toleransinya</p>
+        <span class="gap"></span>
+        <pre><code>
+solusi = gauss_seidel(A, b, x0, var_list, tol)
+        </code></pre>
+        <p>itu cuman manggil fungsi utama nya tadi loh yang <span class="unic">gauss_seidel</span></p>
+        <span class="gap"></span>
+        <pre><code>
+print("\n--- HASIL AKHIR ---")
+for i, var in enumerate(var_list):
+    print(f"{var} = {solusi[i]:.6f}")
+        </code></pre>
+        <p>buat ngeprint/nampilin hasilnya</p>
+      </div>
+      <div class="box">
+        <h2>Tutorial & tips</h2>
+        <p>yaa mungkin ini guna dan ga guna sih, cuman semoga aja ngebantu lah ya harusnya...</p>
+        <span class="gap"></span>
+        <span class="jumdul">#source-code?</span>
+        <p>cara copas nya tinggal pencet aja tombol "<span class="unic">Salin</span>" yang ada di atas, dah tuh tinggal dipaste aja.</p>
+        <span class="gap"></span>
+        <span class="jumdul">#ga bisa di copy sc-nya?</span>
+        <p>mungkin itu fitur copas nya *ngebug, bisa langsung aja cek dokslinya lewat github, tinggal klik aja link <a href="" target="_blank">source-code</a></p>
+        <span class="gap"></span>
+        <span class="jumdul">#cara nge-run di vs code?</span>
+        <ul>
+            <li>instal dulu python nya di laptop, <a href="https://www.python.org/downloads/" target="_blank">download python</a></li>
+            <li>abis instal python tadi, instal <span class="unic">numpy</span> nya dgn cara buka terminal vs code ketik <span class="cmd">python -m pip install numpy</span></li>
+            <li style="margin: 10px 0;">cara nge-run programnya tinggal buka terminal vs code nya tadi, terus ketik aja di terminal: <span class="cmd">py <i>(nama file).py</i></span></li>
+        </ul>
+        <span class="gap"></span>
+        <span class="jumdul">#ga bisa di run di vs code?</span>
+        coba di run secara online aja banyak tinggal cari aja di google <span class="unic"><i>"python compiler online"</i></span>, cuman minusnya kalo dosen minta ubah source-code nya ntar ribet, ya langkah terakhir tanya AI abis itu copas aja.
+        <span class="gap"></span>
+        <span class="jumdul">#ada cara lain?</span>
+        <p>sebenernya bisa juga di-run di terminal laptop, cuman biar ga ribet pake aja vs code, ya dua-dua nya sama-sama ribet sih, atur aja dah sebrengsek mungkin.</p>
+      </div>
+      <div class="box">
+        <h2>Udah gausah di scroll lagi</h2>
+        <p>ngapain masih di scroll udah ga ada apa-apa juga.</p>
+        <span class="gap"></span>
+        <p>ya mungkin segitu aja buat penjelasannya, kalo ada yg mau ditanyain bisa langsung wa aja, maaf kalo <i>slowrespon</i> ntar kalo ada salah atau tambahan bisa di cek lagi, ntar tak kasih keterangan nya udah ada update nya atau engga, makasih buang-buang waktunya baca sampe sini, udah gitu aja, lebih capek yapping daripada ngetik jujurrr...</p>
+      </div>
+    </div>
+  </body>
+  <script src="script.js"></script>
+</html>
